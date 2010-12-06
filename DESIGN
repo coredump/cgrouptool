@@ -1,0 +1,29 @@
+tool:
+
+- interact with the daemon to:
+  - check/list groups
+  - remove groups
+  - create groups
+  - add pids to groups
+  - remove pids from groups
+
+daemon:
+
+  - remove groups
+  - create groups
+  - add pids to groups
+  - remove pids from groups  
+
+lib:
+
+  - check/list groups
+  - remove groups
+  - create groups
+  - add pids to groups
+  - remove pids from groups
+
+Objs:
+
+  - cgroups: reflects the on-dir structure
+
+how to share the data
