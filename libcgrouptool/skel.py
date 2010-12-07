@@ -20,7 +20,14 @@
 
 import os
 
-class Cgroup(object):
+class CgroupError(Exception):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+class Cgroup:
     """ Cgroup object to reflect the on-disk structure.
 
     children: list of children cgroups of this cgroup.
@@ -31,45 +38,44 @@ class Cgroup(object):
     removeproc: utility method to remove a proc from procs
     """
     
-    children = []
-    siblings = None
-    path = ''
-    fspath = ''
-    procs = []
+    def __init__(self, name, parent_class, cgroupmount = None):
+        if parent_class == self:
+            raise CgroupError("Cgroup can't be child of itself")
 
-    def __init__(self, name, parent, cgroupmount = None):
-        if parent == self:
-            raise Exception("Cgroup can't be child of itself")
-            return
-
-        if parent is not None:
-            parent.children.append(self)
-            self.parent = parent
+        if parent_class is not None:
+            self.parent = parent_class
+            self.parent.children.append(self)
             self.siblings = self.parent.children
             self.__create_group(name)   
         else:
+            self.parent = None
             self.path = '/'
             self.fspath = cgroupmount
+
+        self.children = []
+        self.siblings = []
+        self.procs = []
+        self.name = name
     
     def __create_group(self, name):
         new_path = os.path.join(self.parent.fspath, name)
-        try:
-            os.mkdir(new_path)
-        except:
-            raise Exception("Can't create the cgroup directory")
-            return
-        self.fspath = path
+        if os.path.exists(new_path):
+            raise CgroupError("Group already exists")
+        else:
+            try:
+                os.mkdir(new_path)
+            except:
+                raise CgroupError("Can't create the cgroup directory")
+        self.fspath = new_path
         self.path = self.parent.path.rstrip('/') + '/%s' % name
         
     def __remove_group(self, name):
         if len(self.children) > 0:
-            raise Exception("Can't remove a group with children")
-            return
+            raise CgroupError("Can't remove a group with children")
         try:
             os.rmdir(self.fspath)
         except:
-            raise Exception("Can't remove the cgroup directory")
-            return
+            raise CgroupError("Can't remove the cgroup directory")
         self.parent.children.remove(self) 
 
     def __add_pid_to_cgroup(self, pid):
@@ -78,7 +84,7 @@ class Cgroup(object):
         try:
             tsk_file.write(str(pid))
         except:
-            raise Exception("Can't write to cgroup's tasks file")
+            raise CgroupError("Can't write to cgroup's tasks file")
 
     def __remove_pid_from_cgroup(pid):
         """In truth, moves the pid to the cgroup's parent cgroup,
@@ -88,18 +94,18 @@ class Cgroup(object):
         try:
             tsk_file.write(str(pid))
         except:
-            raise Exception("Cant't write to parent cgroup's tasks file") 
+            raise CgroupError("Cant't write to parent cgroup's tasks file") 
     
     def addproc(self, pid):
         if pid in self.procs:
-            raise Exception("pid already on this cgroup")
+            raise CgroupError("pid already on this cgroup")
         else:
             self.procs.append(pid)
             self.__add_pid_to_cgroup(pid)
 
     def removeproc(self,pid):
         if pid not in self.prcs:
-            raise Exception("pid not on this cgroup")
+            raise CgroupError("pid not on this cgroup")
         else:
             self.procs.remove(pid)
             self.__remove_pid_from_cgroup(pid)
