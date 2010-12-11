@@ -32,12 +32,12 @@ class Cgroup:
 
     children: list of children cgroups of this cgroup.
     path: path related to on-disk position, starts at /
-    procs: list of processes that are on this cgroup
+    tasks: list of processes that are on this cgroup
 
-    addproc: utility method to append a proc to procs
-    removeproc: utility method to remove a proc from procs
+    addtask: utility method to append a task to tasks
+    removetask: utility method to remove a task from tasks
     """
-    
+
     def __init__(self, name, parent_class, cgroupmount = None):
         if parent_class == self:
             raise CgroupError("Cgroup can't be child of itself")
@@ -46,17 +46,29 @@ class Cgroup:
             self.parent = parent_class
             self.parent.children.append(self)
             self.siblings = self.parent.children
-            self.__create_group(name)   
+            self.__create_group(name)
+            self.tasks = []
+            self.name = name
         else:
             self.parent = None
+            self.name = 'root'
             self.path = '/'
             self.fspath = cgroupmount
+            self.tasks = []
 
         self.children = []
         self.siblings = []
-        self.procs = []
-        self.name = name
-    
+        self.__update_tasks()
+
+    def __update_tasks(self):
+        #Tasks must reflect the tasks file on disk
+        try:
+            task_file_path = os.path.join(self.fspath, "tasks")
+            for line in open(task_file_path):
+                self.tasks.append(line.strip())
+        except Exception, detail:
+            raise CgroupError("Problems adding root tasks: %s" % detail)
+
     def __create_group(self, name):
         new_path = os.path.join(self.parent.fspath, name)
         if os.path.exists(new_path):
@@ -68,44 +80,62 @@ class Cgroup:
                 raise CgroupError("Can't create the cgroup directory")
         self.fspath = new_path
         self.path = self.parent.path.rstrip('/') + '/%s' % name
-        
-    def __remove_group(self, name):
-        if len(self.children) > 0:
-            raise CgroupError("Can't remove a group with children")
-        try:
-            os.rmdir(self.fspath)
-        except:
-            raise CgroupError("Can't remove the cgroup directory")
-        self.parent.children.remove(self) 
 
-    def __add_pid_to_cgroup(self, pid):
+    def remove_group(self, name = None):
+        if name == None:
+            name = self.name
+        # Copies the list of objects or the recursive removal will mess up the
+        # for loop
+        to_remove = [c for c in self.children][:]
+        if len(to_remove) > 0:
+            for child in to_remove:
+                print 'try to remove %s' % child.name
+                child.remove_group(child.name)
+        # This block only executes on non-root nodes
+        if self.name != 'root':
+            if len(self.tasks) > 0:
+                for task in self.tasks:
+                    self.__remove_task_from_cgroup(task)
+            try:
+                print 'try to remove dir %s' % self.fspath
+                os.rmdir(self.fspath)
+            except:
+                raise CgroupError("Can't remove the cgroup directory")
+            self.parent.children.remove(self)
+
+    def __add_task_to_cgroup(self, task):
         tsk_file_path = os.path.join(self.fspath, 'tasks')
-        tsk_file = open(tsk_file_path)
         try:
-            tsk_file.write(str(pid))
+            tsk_file = open(tsk_file_path)
+            tsk_file.write(str(task))
         except:
             raise CgroupError("Can't write to cgroup's tasks file")
+        self.__update_tasks()
 
-    def __remove_pid_from_cgroup(pid):
-        """In truth, moves the pid to the cgroup's parent cgroup,
+    def __remove_task_from_cgroup(self, task):
+        """In truth, moves the task to the cgroup's parent cgroup,
            there's no way to remove it from the tasks file"""
+        # Barrier to prevent removing tasks from root cgroup
+        if self.name == 'root':
+            raise "Can't remove tasks from root cgroup"
         tsk_file_path = os.path.join(self.parent.fspath, 'tasks')
         tsk_file = open(tsk_file_path)
         try:
-            tsk_file.write(str(pid))
+            tsk_file.write(str(task))
         except:
-            raise CgroupError("Cant't write to parent cgroup's tasks file") 
-    
-    def addproc(self, pid):
-        if pid in self.procs:
-            raise CgroupError("pid already on this cgroup")
-        else:
-            self.procs.append(pid)
-            self.__add_pid_to_cgroup(pid)
+            raise CgroupError("Cant't write to parent cgroup's tasks file")
 
-    def removeproc(self,pid):
-        if pid not in self.prcs:
-            raise CgroupError("pid not on this cgroup")
+    def addtask(self, task):
+        if task in self.tasks:
+            raise CgroupError("task already on this cgroup")
         else:
-            self.procs.remove(pid)
-            self.__remove_pid_from_cgroup(pid)
+            self.tasks.append(task)
+            self.__add_task_to_cgroup(task)
+
+    def removetask(self,task):
+        if task not in self.tasks:
+            raise CgroupError("task not on this cgroup")
+        else:
+            self.tasks.remove(task)
+            self.__remove_task_from_cgroup(task)
+
