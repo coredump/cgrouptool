@@ -38,7 +38,7 @@ class Cgroup:
     children: list of children cgroups of this cgroup.
     path: path related to on-disk position, starts at /
     tasks: list of processes that are on this cgroup
-    siblins: child groups at the same level
+    siblings: child groups at the same level
 
     addtask: utility method to append a task to tasks
     removetask: utility method to remove a task from tasks
