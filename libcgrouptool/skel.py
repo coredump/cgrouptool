@@ -30,12 +30,20 @@ class CgroupError(Exception):
 class Cgroup:
     """ Cgroup object to reflect the on-disk structure.
 
+    The cgroup hierarchy must start with a instance of this class called 'root'
+    with 'parent_class' equal to None and cgroupmount pointing to the cgroup
+    filesystem mountpoint (normally /sys/fs/cgroup/). From there the other
+    instances will use the root object as parent_class.
+
     children: list of children cgroups of this cgroup.
     path: path related to on-disk position, starts at /
     tasks: list of processes that are on this cgroup
+    siblins: child groups at the same level
 
     addtask: utility method to append a task to tasks
     removetask: utility method to remove a task from tasks
+    remove_group: remove a cgroup from disk, recursively remove children, also
+                  remove any tasks attached to the cgroups.
     """
 
     def __init__(self, name, parent_class, cgroupmount = None):
@@ -61,13 +69,19 @@ class Cgroup:
         self.__update_tasks()
 
     def __update_tasks(self):
-        #Tasks must reflect the tasks file on disk
+        # Tasks must reflect the tasks file on disk
+        # TODO: This may be a little read intensive during multiple group 
+        #       creation or multiple task insertion. Must test.
+        self.tasks = []
         try:
             task_file_path = os.path.join(self.fspath, "tasks")
             for line in open(task_file_path):
                 self.tasks.append(line.strip())
-        except Exception, detail:
-            raise CgroupError("Problems adding root tasks: %s" % detail)
+        except Exception, err:
+            raise CgroupError("Problems updating tasks: %s" % err)
+
+        if self.name != 'root':
+            self.parent.__update_tasks()
 
     def __create_group(self, name):
         new_path = os.path.join(self.parent.fspath, name)
@@ -81,35 +95,14 @@ class Cgroup:
         self.fspath = new_path
         self.path = self.parent.path.rstrip('/') + '/%s' % name
 
-    def remove_group(self, name = None):
-        if name == None:
-            name = self.name
-        # Copies the list of objects or the recursive removal will mess up the
-        # for loop
-        to_remove = [c for c in self.children][:]
-        if len(to_remove) > 0:
-            for child in to_remove:
-                print 'try to remove %s' % child.name
-                child.remove_group(child.name)
-        # This block only executes on non-root nodes
-        if self.name != 'root':
-            if len(self.tasks) > 0:
-                for task in self.tasks:
-                    self.__remove_task_from_cgroup(task)
-            try:
-                print 'try to remove dir %s' % self.fspath
-                os.rmdir(self.fspath)
-            except:
-                raise CgroupError("Can't remove the cgroup directory")
-            self.parent.children.remove(self)
-
     def __add_task_to_cgroup(self, task):
-        tsk_file_path = os.path.join(self.fspath, 'tasks')
+        task_file_path = os.path.join(self.fspath, "tasks")
         try:
-            tsk_file = open(tsk_file_path)
-            tsk_file.write(str(task))
-        except:
-            raise CgroupError("Can't write to cgroup's tasks file")
+            task_file = open(task_file_path, "w")
+            task_file.write(str(task))
+            task_file.close()
+        except Exception as err:
+            raise CgroupError("Can't write to cgroup's tasks file: %s" % err)
         self.__update_tasks()
 
     def __remove_task_from_cgroup(self, task):
@@ -118,24 +111,40 @@ class Cgroup:
         # Barrier to prevent removing tasks from root cgroup
         if self.name == 'root':
             raise "Can't remove tasks from root cgroup"
-        tsk_file_path = os.path.join(self.parent.fspath, 'tasks')
-        tsk_file = open(tsk_file_path)
         try:
-            tsk_file.write(str(task))
-        except:
-            raise CgroupError("Cant't write to parent cgroup's tasks file")
+            self.parent.addtask(task)
+        except Exception as err:
+            raise CgroupError("Can't add task to parent cgroup %s" % err)
+
+    def remove_group(self, name = None):
+        if name == None:
+            name = self.name
+        # Copies the list of objects or the recursive removal will mess up the
+        # for loop
+        to_remove = [c for c in self.children][:]
+        if len(to_remove) > 0:
+            for child in to_remove:
+                child.remove_group(child.name)
+        # This block only executes on non-root nodes
+        if self.name != 'root':
+            if len(self.tasks) > 0:
+                for task in self.tasks:
+                    self.__remove_task_from_cgroup(task)
+            try:
+                os.rmdir(self.fspath)
+            except:
+                raise CgroupError("Can't remove the cgroup directory")
+            self.parent.children.remove(self)
 
     def addtask(self, task):
         if task in self.tasks:
             raise CgroupError("task already on this cgroup")
         else:
-            self.tasks.append(task)
             self.__add_task_to_cgroup(task)
 
     def removetask(self,task):
         if task not in self.tasks:
             raise CgroupError("task not on this cgroup")
         else:
-            self.tasks.remove(task)
             self.__remove_task_from_cgroup(task)
 

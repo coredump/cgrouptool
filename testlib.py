@@ -1,6 +1,7 @@
 #!/usr/env python
 # -*- coding: utf-8 -*-
 
+import random
 from libcgrouptool.skel import Cgroup
 
 root = Cgroup('root', None, cgroupmount = '/sys/fs/cgroup')
@@ -11,7 +12,17 @@ child4 = Cgroup('child4', child3)
 
 objects = [root, child1, child2, child3, child4]
 
+# task tests
+
+tasks = root.tasks
+sample = random.sample(tasks, 8)
+
 for item in objects:
+    if item.name != 'root':
+        pid1 = sample.pop()
+        pid2 = sample.pop()
+        item.addtask(pid1)
+        item.addtask(pid2)
     print 'name', item.name
     if item.parent is not None:
         print 'parent', item.parent.name
@@ -24,4 +35,6 @@ for item in objects:
     print 'tasks', item.tasks
     print '-------'
 
+
+# Finish it
 root.remove_group()
