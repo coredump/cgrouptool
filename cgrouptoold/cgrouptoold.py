@@ -19,11 +19,8 @@
 # along with cgrouptools.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 from os import path
 from ConfigParser import ConfigParser
-# while in devel, do like the devels
-sys.path.append('/home/coredump/dev/cgrouptool/')
 from libcgrouptool.skel import Cgroup, CgroupError
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
