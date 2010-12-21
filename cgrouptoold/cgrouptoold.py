@@ -18,16 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with cgrouptools.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-from os import path
-from ConfigParser import ConfigParser
-from libcgrouptool.skel import Cgroup, CgroupError
+# This daemon uses the implementation module of PEP 3143, python-daemon,
+# that can be found on pypi and will be included on standard lib on 3.x
+# It deals with daemon creating and DTRT. The PEP is a very interesting
+# lecture about Unix daemon creation.
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-config_locations = [current_dir, '/etc/']
-config_name = 'cgrouptoold.cfg'
+from cgrouptoold.cgrouptoold import CgroupToolDaemon
+from daemon import daemon
 
-config = ConfigParser()
-result = config.read([path.join(x, config_name) for x in config_locations])
-if len(result) < 1:
-    raise CgroupError("Error reading config file")
+cgtd = CgroupToolDaemon()
+cgtd.parse_config()
+print cgtd.config
+print cgtd.config.sections()
