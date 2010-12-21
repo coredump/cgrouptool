@@ -28,5 +28,4 @@ from daemon import daemon
 
 cgtd = CgroupToolDaemon()
 cgtd.parse_config()
-print cgtd.config
-print cgtd.config.sections()
+cgtd.debug(cgtd.config.sections())
