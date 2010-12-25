@@ -1,0 +1,5 @@
+# This script is sourced (not executed) as root at the beginning of a
+# gdm login session.  gdm blocks until it finishes.
+
+# Startup the metrics gathering daemon
+daemon -e "USER=$USER" -- python -m debathena.metrics.gatherer

@@ -1,0 +1,4 @@
+debian/25debathena-metrics-startup usr/share/debathena-gdm-config/PreSession.d
+debian/75debathena-metrics-stop usr/share/debathena-gdm-config/PostSession.d
+debian/90debathena-metrics etc/apt/apt.conf.d
+install-pkg usr/lib/debathena-metrics

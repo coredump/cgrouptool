@@ -1,0 +1,48 @@
+debathena-metrics (1.5.1) unstable; urgency=low
+
+  * Update the blacklist
+
+ -- Jonathan Reed <jdreed@mit.edu>  Wed, 21 Apr 2010 15:19:20 -0400
+
+debathena-metrics (1.5) unstable; urgency=low
+
+  * Variable names in Python are case sensitive...
+  * ... which we'd have noticed if we were handling exceptions
+  * Update the blacklist
+
+ -- Jonathan Reed <jdreed@mit.edu>  Wed, 21 Apr 2010 15:19:07 -0400
+
+debathena-metrics (1.4) unstable; urgency=low
+
+  * Strip off reactivate-2.x chroot path prefixes
+  * Add a directory blacklist and update the program blacklist
+
+ -- Jonathan Reed <jdreed@mit.edu>  Fri, 19 Mar 2010 12:18:09 -0400
+
+debathena-metrics (1.3) unstable; urgency=low
+
+  * If a process is being started inside the login chroot, strip off the
+    /login prefix for path consistency.
+  * Add an application blacklist for apps that always run in a login
+    session.
+
+ -- Evan Broder <broder@mit.edu>  Tue, 13 Oct 2009 14:32:06 -0400
+
+debathena-metrics (1.2) unstable; urgency=low
+
+  * Switch to facility local0.
+  * Remove an extraneous space at the beginning of the log messages.
+
+ -- Evan Broder <broder@mit.edu>  Tue, 06 Oct 2009 15:14:04 -0400
+
+debathena-metrics (1.1) unstable; urgency=low
+
+  * Fix a typo in the install-pkg script.
+
+ -- Evan Broder <broder@mit.edu>  Sun, 04 Oct 2009 23:39:44 -0400
+
+debathena-metrics (1.0) unstable; urgency=low
+
+  * Initial release.
+
+ -- Evan Broder <broder@mit.edu>  Sun, 30 Aug 2009 17:14:06 -0400

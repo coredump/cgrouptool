@@ -1,0 +1,19 @@
+Source: debathena-metrics
+Section: debathena/misc
+Priority: extra
+Maintainer: Debathena Project <debathena@mit.edu>
+Build-Depends: cdbs (>= 0.4.43), debhelper (>= 5.0.37.2),
+ python-all-dev (>= 2.3.5-11), python-support (>= 0.5.3),
+ python-pyrex, python-setuptools
+Standards-Version: 3.8.3
+
+Package: debathena-metrics
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${python:Depends},
+ daemon, dbus, debathena-gdm-config (>= 1.14~)
+Conflicts: ${diverted-files}
+Description: Collect metrics on Athena usage
+ This package collects, anonymizes, and centrally logs statistics on
+ how Athena cluster machines are being used. This information is used
+ both to help guide inclusion or exclusion of software, justify
+ devoting resources to Athena development, and focus those resources.
