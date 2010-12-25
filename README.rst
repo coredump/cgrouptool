@@ -9,4 +9,3 @@ available on the Linux kernel 2.6
   on a config file
 * cgrouptool will be a command line tool to talk to the daemon and check stuff
 
-Everything is GPL licensed.

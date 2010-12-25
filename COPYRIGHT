@@ -1,0 +1,38 @@
+cgrouptools:
+
+Copyright 2010 José de Paula Eufrásio Júnior <jose.junior@gmail.com>
+
+  grouptools is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  any later version.
+
+  libcgrouptools is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with libcgrouptools.  If not, see <http://www.gnu.org/licenses/>.
+
+--------
+
+Other licenses used on this work:
+
+This software uses parts of the Debathena source code from MIT:
+
+The Athena source code was obtained from the Athena SVN repository at
+<svn://debathena.mit.edu/athena/trunk>, and is licensed as follows:
+
+Copyright © 2008 by the Massachusetts Institute of Technology.
+
+  Permission to use, copy, modify, and distribute this software and
+  its documentation for any purpose and without fee is hereby granted,
+  provided that the above copyright notice appear in all copies and
+  that both that copyright notice and this permission notice appear in
+  supporting documentation, and that the name of M.I.T. not be used in
+  advertising or publicity pertaining to distribution of the software
+  without specific, written prior permission.  M.I.T. makes no
+  representations about the suitability of this software for any
+  purpose.  It is provided "as is" without express or implied
+  warranty.
