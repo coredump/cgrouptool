@@ -9,3 +9,11 @@ available on the Linux kernel 2.6
   on a config file
 * cgrouptool will be a command line tool to talk to the daemon and check stuff
 
+Requisites
+==========
+
+- A kernel compiled with:
+
+1. Cgroups support (CONFIG_CGROUPS=y)
+2. Netlink proc events support (CONFIG_CONNECTOR=y and CONFIG_PROC_EVENTS=y)
+3. Python >= 2.5

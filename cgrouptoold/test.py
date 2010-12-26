@@ -9,23 +9,27 @@ def make_non_blocking(fd):
    flags = fcntl.fcntl(fd, fcntl.F_GETFL)
    fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
-class Listener(threading.Thread):
+conn = connector.Connector()
+#make_non_blocking(conn)
 
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.conn = connector.Connector()
-        make_non_blocking(self.conn)
+while True:
+    try:
+        ev = conn.recv_event()
+    except Exception, e:
+        print e
 
-    def run(self):
-        while True:
-            #if raw_input() == 'q':
-            #    break
-            #try:
-                #print '.',
-            ev = self.conn.recv_event()
-            #except Exception, e:
-            #    pass
-        print ev.what
-
-prog = Listener()
-prog.start()
+    if ev.what == connector.PROC_EVENT_FORK:
+        linkpath = os.path.join('/proc/', str(ev.child_pid), 'exe')
+        name = os.readlink(linkpath)
+        print "Parent: ", ev.parent_pid, "Forked: ", ev.child_pid, name
+    elif ev.what == connector.PROC_EVENT_EXEC:
+        linkpath = os.path.join('/proc/', str(ev.process_pid), 'exe')
+        name = os.readlink(linkpath)
+        print "Exec: ", ev.process_pid, name
+    elif ev.what == connector.PROC_EVENT_EXIT:
+        linkpath = os.path.join('/proc', str(ev.process_pid), 'exe')
+        if os.path.exists(linkpath):
+            name = os.readlink(linkpath)
+        else:
+            name = None
+        print "Exit: ", ev.process_pid, name

@@ -4,3 +4,5 @@ docs/_build*
 *.log
 */build/*
 */.svn/*
+*/*egg-info/*
+*/dist/*
