@@ -27,5 +27,4 @@ from cgrouptoold.cgrouptoold import CgroupToolDaemon
 from daemon import daemon
 
 cgtd = CgroupToolDaemon()
-cgtd.parse_config()
-cgtd.debug(cgtd.config.sections())
+cgtd.start_daemon()

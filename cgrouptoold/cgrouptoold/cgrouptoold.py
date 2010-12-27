@@ -20,21 +20,23 @@
 
 import os
 import logging
-from logging import handlers
+from utils import CgroupToolDaemonError
 from os import path
+from logging import handlers
+from threading import Thread
+from Queue import Queue
+from debathena.metrics import connector
 from ConfigParser import ConfigParser, NoOptionError
 from libcgrouptool.skel import Cgroup, CgroupError
-
-class CgroupToolDaemonError(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def str(self, value):
-        return repr(value)
 
 class CgroupToolDaemon:
 
     def __init__(self):
+        """ """
+
+        self.queue = Queue()
+        self.enabled_engines = []
+
         self.parse_config()
         self._setup_logging()
 
@@ -48,7 +50,6 @@ class CgroupToolDaemon:
         if len(result) < 1:
             raise CgroupError("Error reading config file")
 
-        self.enabled_engines = []
         try:
             for section in self.config.sections():
                 if section == "Common":
@@ -68,7 +69,10 @@ class CgroupToolDaemon:
             raise CgroupToolDaemonError("Only one engine can be enabled")
 
     def start_daemon(self):
-        pass
+        creator = CgroupCreator(self.queue)
+        listener = EventListener(self.queue)
+        creator.start()
+        listener.start()
 
     def reload_daemon(self):
         pass
@@ -92,7 +96,7 @@ class CgroupToolDaemon:
 
         logger = logging.getLogger("cgrouptoold")
         logger.setLevel(log_levels[self.loglevel])
-        
+
         if self.logdest == "file":
             handler = logging.FileHandler(self.logfile)
             handler.setLevel(log_levels[self.loglevel])
@@ -102,7 +106,7 @@ class CgroupToolDaemon:
             handler.setLevel(log_levels[self.loglevel])
         else:
             raise CgroupToolDaemonError("Incorrect LogFacility config")
-       
+
         format_str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         formatter = logging.Formatter(format_str)
 
@@ -112,3 +116,38 @@ class CgroupToolDaemon:
         self.info = logger.info
         self.crit = logger.critical
 
+class EventListener(Thread):
+    """Listens for netlink connector events and puts them on a queue"""
+
+    def __init__(self, queue):
+        Thread.__init__(self)
+        self.queue = queue
+        try:
+            self.conn = connector.Connector()
+        except IOError:
+            raise CgroupToolDaemonError("This daemon must be started as root")
+
+    def run(self):
+        monitor_events = [ connector.PROC_EVENT_FORK,
+                           connector.PROC_EVENT_EXEC,
+                           connector.PROC_EVENT_EXIT,
+                         ]
+        while True:
+            try:
+                ev = self.conn.recv_event()
+            except Exception, e:
+                raise CgroupToolDaemonError("%s" % e)
+            if ev.what in monitor_events:
+                self.queue.put(ev)
+
+class CgroupCreator(Thread):
+
+    def __init__(self, queue):
+        Thread.__init__(self)
+        self.queue = queue
+
+    def run(self):
+        while True:
+            ev = self.queue.get()
+            print ev.what
+            self.queue.task_done()
