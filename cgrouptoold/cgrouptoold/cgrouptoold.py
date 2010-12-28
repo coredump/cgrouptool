@@ -28,6 +28,7 @@ from Queue import Queue
 from debathena.metrics import connector
 from ConfigParser import ConfigParser, NoOptionError
 from libcgrouptool.skel import Cgroup, CgroupError
+from Engines import TTY
 
 class CgroupToolDaemon:
 
@@ -69,8 +70,8 @@ class CgroupToolDaemon:
             raise CgroupToolDaemonError("Only one engine can be enabled")
 
     def start_daemon(self):
-        creator = CgroupCreator(self.queue)
-        listener = EventListener(self.queue)
+        creator = CgroupCreator(self.queue, self.log)
+        listener = EventListener(self.queue, self.log)
         creator.start()
         listener.start()
 
@@ -112,6 +113,7 @@ class CgroupToolDaemon:
 
         handler.setFormatter(formatter)
         logger.addHandler(handler)
+        self.log = logger
         self.debug = logger.debug
         self.info = logger.info
         self.crit = logger.critical
@@ -119,9 +121,11 @@ class CgroupToolDaemon:
 class EventListener(Thread):
     """Listens for netlink connector events and puts them on a queue"""
 
-    def __init__(self, queue):
+    def __init__(self, queue, log):
         Thread.__init__(self)
         self.queue = queue
+        self.log = log
+        self.debug, self.info, self.crit = log.debug, log.info, log.critical
         try:
             self.conn = connector.Connector()
         except IOError:
@@ -142,12 +146,18 @@ class EventListener(Thread):
 
 class CgroupCreator(Thread):
 
-    def __init__(self, queue):
+    def __init__(self, queue, log):
         Thread.__init__(self)
+        self.log = log
+        self.debug, self.info, self.crit = log.debug, log.info, log.critical
         self.queue = queue
 
     def run(self):
+        engine = TTY(self.log)
         while True:
             ev = self.queue.get()
-            print ev.what
+            if ev.what == connector.PROC_EVENT_EXEC:
+                engine.new_exec(ev.process_pid)
+            elif ev.what == connector.PROC_EVENT_EXIT:
+                engine.new_exit(ev.process_pid)
             self.queue.task_done()
