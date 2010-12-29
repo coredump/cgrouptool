@@ -19,7 +19,12 @@
 # along with cgrouptools.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import fcntl
 from debathena.metrics import connector
+
+def make_non_blocking(fd):
+   flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+   fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
 class CgroupToolDaemonError(Exception):
     def __init__(self, value):

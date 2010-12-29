@@ -20,11 +20,12 @@
 
 import os
 import logging
-from utils import CgroupToolDaemonError
+import select
+from utils import CgroupToolDaemonError, make_non_blocking
 from os import path
 from logging import handlers
 from threading import Thread
-from Queue import Queue
+from Queue import Queue, Empty
 from debathena.metrics import connector
 from ConfigParser import ConfigParser, NoOptionError
 from libcgrouptool.skel import Cgroup, CgroupError
@@ -74,6 +75,9 @@ class CgroupToolDaemon:
         listener = EventListener(self.queue, self.log)
         creator.start()
         listener.start()
+
+        creator.join()
+        listener.join()
 
     def reload_daemon(self):
         pass
@@ -128,17 +132,27 @@ class EventListener(Thread):
         self.debug, self.info, self.crit = log.debug, log.info, log.critical
         try:
             self.conn = connector.Connector()
+            make_non_blocking(self.conn)
+            self.polling = select.poll()
+            poll_mask = (select.POLLIN | select.POLLPRI | select.POLLERR )
+            self.polling.register(self.conn, poll_mask)
         except IOError:
             raise CgroupToolDaemonError("This daemon must be started as root")
 
     def run(self):
-        monitor_events = [ connector.PROC_EVENT_FORK,
+        monitor_events = [ #connector.PROC_EVENT_FORK,
                            connector.PROC_EVENT_EXEC,
                            connector.PROC_EVENT_EXIT,
                          ]
         while True:
             try:
-                ev = self.conn.recv_event()
+                p_result = self.polling.poll()[0][1]
+                if p_result <= select.POLLPRI:
+                    ev = self.conn.recv_event()
+                else:
+                    continue
+            except IOError:
+                pass
             except Exception, e:
                 raise CgroupToolDaemonError("%s" % e)
             if ev.what in monitor_events:
@@ -155,9 +169,16 @@ class CgroupCreator(Thread):
     def run(self):
         engine = TTY(self.log)
         while True:
-            ev = self.queue.get()
+            try:
+                ev = self.queue.get()
+            except Empty:
+                continue
+
             if ev.what == connector.PROC_EVENT_EXEC:
                 engine.new_exec(ev.process_pid)
+            if ev.what == connector.PROC_EVENT_FORK:
+                engine.new_exec(ev.child_pid)
             elif ev.what == connector.PROC_EVENT_EXIT:
                 engine.new_exit(ev.process_pid)
+
             self.queue.task_done()

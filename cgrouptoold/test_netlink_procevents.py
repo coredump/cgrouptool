@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
 import os
+import fcntl
+import select
+from select import poll
 from debathena.metrics import connector
 from threading import Thread
-import fcntl
 
 def make_non_blocking(fd):
    flags = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -18,6 +20,10 @@ class Listener(Thread):
         Thread.__init__(self)
         try:
             self.conn = connector.Connector()
+            make_non_blocking(self.conn)
+            self.polling = poll()
+            poll_mask = (select.POLLIN | select.POLLPRI | select.POLLERR )
+            self.polling.register(self.conn, poll_mask)
         except IOError, e:
             print "Must be root: %s" % e
             os._exit(2)
@@ -25,13 +31,21 @@ class Listener(Thread):
     def run(self):
         while True:
             try:
-                self.ev = self.conn.recv_event()
+                p_result = self.polling.poll()
+                print p_result
+                if p_result[0][1] <= select.POLLPRI:
+                    self.ev = self.conn.recv_event()
+                else:
+                    continue
             except Exception, e:
                 print e
 
             if self.ev.what == connector.PROC_EVENT_FORK:
                 linkpath = os.path.join('/proc/', str(self.ev.child_pid), 'exe')
-                name = os.readlink(linkpath)
+                if os.path.exists(linkpath):
+                    name = os.readlink(linkpath)
+                else:
+                    name = 'non ecsiste'
                 print "Parent: ", self.ev.parent_pid, "Forked: ", self.ev.child_pid, name
             elif self.ev.what == connector.PROC_EVENT_EXEC:
                 linkpath = os.path.join('/proc/', str(self.ev.process_pid), 'exe')

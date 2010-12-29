@@ -55,23 +55,22 @@ class TTY(Engine):
         """
 
         fdpath = os.path.join('/proc', str(pid), 'fd/1')
-        if os.path.exists(fdpath):
+        try:
             stdin = os.readlink(fdpath)
             if (stdin.find('pts') >= 0  or
                 stdin.find('tty') >= 0):
                 return True
             else:
                 return False
-        else:
-                self.debug("Process %s vanished too fast" % pid)
-                raise CgroupToolDaemonError("Process vanished too fast")
+        except OSError:
+            raise CgroupToolDaemonError("Process vanished too fast")
 
     def new_exec(self, pid):
         """Receives the pid from a new exec() and decides if it should be put
         on a new cgroup. In case it does, starts the process to create the
         cgroup and organize the processes there.
         """
-
+        self.debug("=> Inside new exec")
         name = self.resolve_name(pid)
         try:
             if self.check_stdin(pid):
@@ -79,10 +78,10 @@ class TTY(Engine):
             else:
                 self.debug("PID %s/%s NOT connected to a terminal" % (pid, name))
         except CgroupToolDaemonError:
-            # Expected in case process vanish too far, just ignore they
+            # Expected in case process vanish too fast, just ignore them
+            self.debug("Process %s vanished too fast" % pid)
             pass
 
     def new_exit(self, pid):
         """docstring for exit"""
-
         self.debug("PID %s exited" % pid)
