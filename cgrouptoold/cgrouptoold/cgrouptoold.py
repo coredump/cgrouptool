@@ -86,11 +86,11 @@ class CgroupToolDaemon:
         pass
 
     def _setup_logging(self):
-        """You can have three levels of logging on the config file: debug, 
+        """You can have three levels of logging on the config file: debug,
         info or critical. The facilities can be any of those strings reflecting
-        the ones listed on man syslog: 
+        the ones listed on man syslog:
 
-        auth authpriv cron daemon ftp kern lpr mail news syslog user uucp 
+        auth authpriv cron daemon ftp kern lpr mail news syslog user uucp
         local0 local1 local2 local3 local4 local5 local6 local7
         """
 

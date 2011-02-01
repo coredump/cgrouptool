@@ -56,3 +56,22 @@ class Event:
             self.pid = self.event.process_pid
             self.type = 'exit'
             self.path = None
+
+class Engine(object):
+    """docstring for Engine"""
+    def __init__(self, log):
+        self.enabled = False
+        self.name = None
+        self.log = log
+        self.debug, self.info, self.crit = log.debug, log.info, log.critical
+
+    def resolve_name(self, pid):
+        exelink = os.path.join('/proc/', str(pid), 'exe')
+        if os.path.exists(exelink):
+            name = os.readlink(exelink)
+        else:
+            # name vanished too fast
+            name = None
+        return name
+
+

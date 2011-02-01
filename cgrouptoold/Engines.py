@@ -22,24 +22,7 @@ import os
 import re
 from debathena.metrics import connector
 from libcgrouptool.skel import Cgroup, CgroupError
-from cgrouptoold.utils import CgroupToolDaemonError
-
-class Engine(object):
-    """docstring for Engine"""
-    def __init__(self, log):
-        self.enabled = False
-        self.name = None
-        self.log = log
-        self.debug, self.info, self.crit = log.debug, log.info, log.critical
-
-    def resolve_name(self, pid):
-        exelink = os.path.join('/proc/', str(pid), 'exe')
-        if os.path.exists(exelink):
-            name = os.readlink(exelink)
-        else:
-            # name vanished too fast
-            name = None
-        return name
+from cgrouptoold.utils import CgroupToolDaemonError, Engine
 
 class TTY(Engine):
     """Simple engine that will create a separate cgroup for each process
