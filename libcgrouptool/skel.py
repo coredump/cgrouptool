@@ -121,11 +121,10 @@ class Cgroup:
             name = self.name
         # Copies the list of objects or the recursive removal will mess up the
         # for loop
-        to_remove = [c for c in self.children][:]
+        to_remove = self.children[:]
         if len(to_remove) > 0:
             for child in to_remove:
                 child.remove_group(child.name)
-        # This block only executes on non-root nodes
         if self.name != 'root':
             if len(self.tasks) > 0:
                 for task in self.tasks:
